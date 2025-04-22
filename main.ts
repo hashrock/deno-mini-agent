@@ -1,8 +1,9 @@
 import OpenAI from "@openai/openai";
+import { parseResponse } from "./parser.ts";
 
 const client = new OpenAI();
 
-async function ask(prompt: string) {
+async function ask(prompt: string): Promise<string> {
   const response = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
@@ -10,7 +11,7 @@ async function ask(prompt: string) {
       { role: "user", content: prompt },
     ],
   });
-  return response.choices[0].message.content;
+  return response.choices[0].message.content || "";
 }
 
 const system = `
@@ -32,30 +33,25 @@ weatherTool: 天気を取得するツールです。応答は{city: "東京", we
 canvasTool: 最終的なレポートを作成するツールです。応答は{content: "レポートの内容"}のようなJSON形式で返します。
 `;
 
-function parseResponse(response: string): {
-  thinking?: string;
-  answer?: string;
-  task?: string;
-} {
-  const result: { thinking?: string; answer?: string; task?: string } = {};
-
-  const thinkingMatch = response.match(/<thinking>([\s\S]*?)<\/thinking>/);
-  if (thinkingMatch) result.thinking = thinkingMatch[1].trim();
-
-  const answerMatch = response.match(/<answer>([\s\S]*?)<\/answer>/);
-  if (answerMatch) result.answer = answerMatch[1].trim();
-
-  const taskMatch = response.match(/<task>([\s\S]*?)<\/task>/);
-  if (taskMatch) result.task = taskMatch[1].trim();
-
-  return result;
-}
-
 // Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
 if (import.meta.main) {
-  console.log(
-    await ask(
-      "来週東京に旅行に行きます。１週間くらいゆっくり博物館を巡りたいなあ。天気が良い日を選んで旅行計画を立てるためにまずタスクに分解してください。"
-    )
-  );
+  const prompt =
+    "来週東京に旅行に行きます。１週間くらいゆっくり博物館を巡りたいなあ。天気が良い日を選んで旅行計画を立てるためにまずタスクに分解してください。";
+  const response = await ask(prompt);
+
+  console.log("===== 生の応答 =====");
+  console.log(response);
+
+  console.log("\n===== 解析結果 =====");
+  const parsed = parseResponse(response);
+  console.log(JSON.stringify(parsed, null, 2));
+
+  if (parsed.tasks && parsed.tasks.length > 0) {
+    console.log("\n===== タスク一覧 =====");
+    parsed.tasks.forEach((task, index) => {
+      console.log(`タスク ${index + 1}:`);
+      console.log(`  ツール: ${task.tool}`);
+      console.log(`  プロンプト: ${task.prompt}`);
+    });
+  }
 }
