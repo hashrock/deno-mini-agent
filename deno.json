@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run --env -A --watch main.ts"
+    "dev": "deno run --env -A --watch main.ts",
+    "main": "deno run --env -A main.ts"
   },
   "imports": {
     "@openai/openai": "jsr:@openai/openai@^4.95.1",
