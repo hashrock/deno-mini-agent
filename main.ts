@@ -33,6 +33,45 @@ weatherTool: 天気を取得するツールです。応答は{city: "東京", we
 canvasTool: 最終的なレポートを作成するツールです。応答は{content: "レポートの内容"}のようなJSON形式で返します。
 `;
 
+interface Tool {
+  name: string;
+  description: string;
+  fn: (prompt: string) => Promise<string>;
+  jsonSchema: string;
+}
+
+const tools: Record<string, Tool> = {
+  whetherTool: {
+    fn: weatherTool,
+    name: "weatherTool",
+    description: "天気を取得するツールです。",
+    jsonSchema: JSON.stringify([
+      { city: "東京", weather: "晴れ", date: "2025-01-01" },
+      { city: "東京", weather: "晴れ", date: "2025-01-02" },
+    ]),
+  },
+  tripAdvisorTool: {
+    fn: tripAdvisorTool,
+    name: "tripAdvisorTool",
+    description: "旅行アドバイザーです。",
+    jsonSchema: JSON.stringify({
+      plans: [{ place: "国立国会図書館", date: "2025-01-01" }],
+    }),
+  },
+};
+
+function weatherTool(input: string): Promise<string> {
+  const tool = tools.whetherTool;
+  const prompt = `${input}。フォーマットは${tool.jsonSchema}のようなJSON形式で返します。`;
+  return ask(prompt);
+}
+
+function tripAdvisorTool(input: string): Promise<string> {
+  const tool = tools.tripAdvisorTool;
+  const prompt = `${input}。フォーマットは${tool.jsonSchema}のようなJSON形式で返します。`;
+  return ask(prompt);
+}
+
 // Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
 if (import.meta.main) {
   const prompt =
