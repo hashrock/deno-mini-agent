@@ -108,9 +108,30 @@ async function executeTask(task: {
   // ツールが存在するか確認
   if (tools[task.tool]) {
     try {
-      const result = await tools[task.tool].fn(contextEnrichedPrompt);
-      console.log(`\n結果: ${result}`);
-      return result;
+      // 最初のステップ: プロンプトを使ってLLMから応答を取得
+      const initialResult = await tools[task.tool].fn(contextEnrichedPrompt);
+      console.log(`\n中間結果: ${initialResult}`);
+
+      // 応答を解析
+      const parsed = parseResponse(initialResult);
+
+      // 解析結果からプロンプトを抽出
+      let finalPrompt = "";
+      if (parsed.tasks && parsed.tasks.length > 0) {
+        // タスクが含まれている場合、最初のタスクのプロンプトを使用
+        const firstTask = parsed.tasks[0];
+        finalPrompt = firstTask.prompt;
+        console.log(`\n抽出されたプロンプト: ${finalPrompt}`);
+
+        // 第二ステップ: 抽出されたプロンプトを使って実際のデータを取得
+        console.log(`\n===== 最終実行: ${task.tool} =====`);
+        const finalResult = await tools[task.tool].fn(finalPrompt);
+        console.log(`\n最終結果: ${finalResult}`);
+        return finalResult;
+      } else {
+        // タスクが含まれていない場合は初期結果をそのまま返す
+        return initialResult;
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
